@@ -3303,6 +3303,7 @@ public abstract class JobStoreSupport : IJobStore
                     NoEarlierThan = MisfireTime,
                     MaxCount = request.MaxCount,
                     ExecutionLimits = request.ExecutionLimits,
+                    JobTypesToExclude = request.JobTypesToExclude,
                     LiveNodeCutoff = liveNodeCutoff,
                 };
 

@@ -30,9 +30,9 @@ public class OracleDelegate : StdAdoDelegate
     /// <summary>
     /// Creates the SQL for select next trigger to acquire.
     /// </summary>
-    protected override string GetSelectNextTriggerToAcquireSql(int maxCount)
+    protected override string GetSelectNextTriggerToAcquireSql(int maxCount, int jobTypesToExcludeCount)
     {
-        return "SELECT * FROM (" + StdAdoConstants.SqlSelectNextTriggerToAcquire + ") WHERE rownum <= " + maxCount;
+        return "SELECT * FROM (" + StdAdoConstants.BuildSqlSelectNextTriggerToAcquire(jobTypesToExcludeCount) + ") WHERE rownum <= " + maxCount;
     }
 
     protected override string GetSelectMisfiredTriggersToRecoverSql(int count)

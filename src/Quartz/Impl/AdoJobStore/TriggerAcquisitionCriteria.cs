@@ -65,6 +65,12 @@ public sealed record TriggerAcquisitionCriteria
     public ExecutionLimits? ExecutionLimits { get; init; }
 
     /// <summary>
+    /// Job type names to exclude from acquisition, or <see langword="null"/> for no exclusion. See
+    /// <see cref="Quartz.Extensibility.TriggerAcquisitionRequest.JobTypesToExclude"/>.
+    /// </summary>
+    public IReadOnlyCollection<string>? JobTypesToExclude { get; init; }
+
+    /// <summary>
     /// Tick value below which a node's last check-in is considered stale, releasing its pinned
     /// triggers to other nodes (preferred node / node affinity).
     /// </summary>

@@ -17,6 +17,25 @@ public class StdAdoConstantsTest
         sql.Should().Be("SELECT COUNT(TRIGGER_NAME) FROM {0}TRIGGERS WHERE SCHED_NAME = @schedulerName AND MISFIRE_INSTR <> -1 AND NEXT_FIRE_TIME < @nextFireTime AND TRIGGER_STATE = @state");
     }
 
+    [Test]
+    public void BuildSqlSelectNextTriggerToAcquire_WithoutExcludedJobTypes_ShouldNotAddExclusionClause()
+    {
+        string sql = StdAdoConstants.BuildSqlSelectNextTriggerToAcquire(0);
+
+        // PREFERRED_NODE NOT IN (...) is a pre-existing, unrelated clause (node affinity), so the
+        // exclusion clause is identified by the column it filters on, not by "NOT IN" alone.
+        sql.Should().NotContain("JOB_CLASS_NAME NOT IN");
+        sql.Should().Contain("NEXT_FIRE_TIME ASC, PRIORITY DESC");
+    }
+
+    [Test]
+    public void BuildSqlSelectNextTriggerToAcquire_WithExcludedJobTypes_ShouldAddParameterizedExclusionClause()
+    {
+        string sql = StdAdoConstants.BuildSqlSelectNextTriggerToAcquire(2);
+
+        sql.Should().Contain("NOT IN (@excludedJobType0, @excludedJobType1)");
+    }
+
     /// <summary>
     /// <see cref="StdAdoDelegate" /> reads JOB_DATA positionally out of this result set, so the column
     /// order is load-bearing. New columns belong at the end.

@@ -19,6 +19,9 @@
 
 #endregion
 
+using System.Globalization;
+using System.Linq;
+
 using static System.FormattableString;
 
 namespace Quartz.Impl.AdoJobStore;
@@ -263,8 +266,21 @@ internal static class StdAdoConstants
 
     // PREFERRED_NODE is filtered entirely in PreferredNodeWhereClause and is not projected —
     // acquisition never reads it from the result (the trigger is reloaded via GetTrigger).
-    public static readonly string SqlSelectNextTriggerToAcquire =
-        Invariant($@"SELECT
+    //
+    // jobTypesToExcludeCount builds a parameterized "AND jd.JOB_CLASS_NAME NOT IN (@excludedJobType0, ...)"
+    // clause (see issue #2238) so a caller can push a job-type exclusion filter into the query
+    // instead of discarding unwanted rows after fetching them. 0 means no exclusion and the clause
+    // is omitted entirely, keeping the query identical to before this feature for every caller that
+    // does not use it.
+    public static string BuildSqlSelectNextTriggerToAcquire(int jobTypesToExcludeCount)
+    {
+        string jobTypeExclusionClause = jobTypesToExcludeCount == 0
+            ? string.Empty
+            : "AND jd." + AdoConstants.ColumnJobClass + " NOT IN (" +
+              string.Join(", ", Enumerable.Range(0, jobTypesToExcludeCount).Select(i => "@excludedJobType" + i.ToString(CultureInfo.InvariantCulture))) +
+              ")";
+
+        return Invariant($@"SELECT
                 t.{AdoConstants.ColumnTriggerName}, t.{AdoConstants.ColumnTriggerGroup}, jd.{AdoConstants.ColumnJobClass}, t.{AdoConstants.ColumnExecutionGroup}
               FROM
                 {TablePrefixSubst}{AdoConstants.TableTriggers} t
@@ -273,8 +289,10 @@ internal static class StdAdoConstants
               WHERE
                 t.{AdoConstants.ColumnSchedulerName} = @schedulerName AND {AdoConstants.ColumnTriggerState} = @state AND {AdoConstants.ColumnNextFireTime} <= @noLaterThan AND ({AdoConstants.ColumnMisfireInstruction} = -1 OR ({AdoConstants.ColumnMisfireInstruction} <> -1 AND {AdoConstants.ColumnNextFireTime} >= @noEarlierThan))
                 {PreferredNodeWhereClause}
+                {jobTypeExclusionClause}
               ORDER BY
                 {AdoConstants.ColumnNextFireTime} ASC, {AdoConstants.ColumnPriority} DESC");
+    }
 
     public static readonly string SqlSelectNumTriggersForJob =
         Invariant($"SELECT COUNT({AdoConstants.ColumnTriggerName}) FROM {TablePrefixSubst}{AdoConstants.TableTriggers} WHERE {AdoConstants.ColumnSchedulerName} = @schedulerName AND {AdoConstants.ColumnJobName} = @jobName AND {AdoConstants.ColumnJobGroup} = @jobGroup");

@@ -77,4 +77,12 @@ public sealed record TriggerAcquisitionRequest
     /// ignore execution groups entirely.
     /// </summary>
     public ExecutionLimits? ExecutionLimits { get; init; }
+
+    /// <summary>
+    /// Job type names (as <see cref="Quartz.JobHeader.JobTypeName"/> / <see cref="Quartz.Impl.AdoJobStore.TriggerAcquireResult.JobTypeName"/>
+    /// store them) to exclude from acquisition, or <see langword="null"/> for no exclusion. Lets a
+    /// store push a job-type filter down to its query layer instead of the caller discarding
+    /// unwanted triggers after the fact.
+    /// </summary>
+    public IReadOnlyCollection<string>? JobTypesToExclude { get; init; }
 }

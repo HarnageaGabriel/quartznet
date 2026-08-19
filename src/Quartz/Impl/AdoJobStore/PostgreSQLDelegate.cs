@@ -32,9 +32,9 @@ public class PostgreSQLDelegate : StdAdoDelegate
     /// MySQL version with LIMIT support.
     /// </summary>
     /// <returns></returns>
-    protected override string GetSelectNextTriggerToAcquireSql(int maxCount)
+    protected override string GetSelectNextTriggerToAcquireSql(int maxCount, int jobTypesToExcludeCount)
     {
-        return StdAdoConstants.SqlSelectNextTriggerToAcquire + " LIMIT " + maxCount;
+        return StdAdoConstants.BuildSqlSelectNextTriggerToAcquire(jobTypesToExcludeCount) + " LIMIT " + maxCount;
     }
 
     protected override string GetSelectMisfiredTriggersToRecoverSql(int count)

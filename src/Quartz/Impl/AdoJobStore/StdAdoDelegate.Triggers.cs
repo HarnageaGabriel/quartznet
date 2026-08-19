@@ -1084,10 +1084,10 @@ public partial class StdAdoDelegate
         return await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) is not null;
     }
 
-    protected virtual string GetSelectNextTriggerToAcquireSql(int maxCount)
+    protected virtual string GetSelectNextTriggerToAcquireSql(int maxCount, int jobTypesToExcludeCount)
     {
         // by default we don't support limits, this is db specific
-        return StdAdoConstants.SqlSelectNextTriggerToAcquire;
+        return StdAdoConstants.BuildSqlSelectNextTriggerToAcquire(jobTypesToExcludeCount);
     }
 
     /// <summary>
@@ -1160,8 +1160,9 @@ public partial class StdAdoDelegate
     {
         // we want at least one trigger back
         int maxCount = criteria.MaxCount < 1 ? 1 : criteria.MaxCount;
+        int jobTypesToExcludeCount = criteria.JobTypesToExclude?.Count ?? 0;
 
-        using var cmd = PrepareCommand(conn, ReplaceTablePrefix(GetSelectNextTriggerToAcquireSql(maxCount)));
+        using var cmd = PrepareCommand(conn, ReplaceTablePrefix(GetSelectNextTriggerToAcquireSql(maxCount, jobTypesToExcludeCount)));
         List<TriggerAcquireResult> nextTriggers = new();
 
         AddCommandParameter(cmd, "schedulerName", schedulerName);
@@ -1169,6 +1170,16 @@ public partial class StdAdoDelegate
         AddCommandParameter(cmd, "noLaterThan", GetDbDateTimeValue(criteria.NoLaterThan));
         AddCommandParameter(cmd, "noEarlierThan", GetDbDateTimeValue(criteria.NoEarlierThan));
         AddPreferredNodeParameters(cmd, criteria.LiveNodeCutoff);
+
+        if (jobTypesToExcludeCount > 0)
+        {
+            int i = 0;
+            foreach (string jobTypeName in criteria.JobTypesToExclude!)
+            {
+                AddCommandParameter(cmd, "excludedJobType" + i.ToString(System.Globalization.CultureInfo.InvariantCulture), jobTypeName);
+                i++;
+            }
+        }
 
         // Work on a copy: the slots are decremented as rows are taken, and the caller may reuse the
         // criteria across retries.
